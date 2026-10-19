@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>会动的公园</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#04c2e7}body{display:grid;place-items:center;overflow:hidden;font-family:system-ui,sans-serif}.park{position:relative;width:min(100vw,177.777778vh);aspect-ratio:16/9;isolation:isolate}.park>img,.park>video,.hotspots{position:absolute;inset:0;width:100%;height:100%;display:block}.park>video{opacity:0;pointer-events:none}.park>video.active{opacity:1}.hotspots{z-index:2;overflow:visible}.spot{fill:transparent;cursor:pointer;outline:none;stroke:transparent;stroke-width:2;stroke-linejoin:round;transition:stroke .15s}.spot:focus-visible{stroke:#fff;stroke-dasharray:6 4;filter:drop-shadow(0 0 3px #00748b)}.hint{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);margin:0;padding:7px 15px;border-radius:30px;background:#ffffffd9;color:#006b73;font-size:12px;white-space:nowrap;pointer-events:none;transition:opacity .3s}.hint.hidden{opacity:0}.error{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#fff;padding:10px 16px;border-radius:10px;color:#7d2727;font-size:14px;z-index:5}.error:empty{display:none}
+</style>
+</head>
+<body>
+<main class="park" aria-label="互动公园：将鼠标移到喷泉、画、草或花上，让它们动起来">
+<img src="assets/park.png" alt="蓝天下的剪纸公园，有树木、画架、喷泉、凉亭、草丛和花朵" draggable="false">
+<video id="fountain" src="assets/penquan.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+<video id="painting" src="assets/hua.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+<video id="grass" src="assets/cao.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+<video id="flowers" src="assets/hua-2.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+<svg class="hotspots" viewBox="0 0 1280 720" aria-label="公园互动区域">
+<path class="spot" data-video="fountain" tabindex="0" role="button" aria-label="播放喷泉动画" aria-pressed="false" d="M448 102 L575 82 L680 82 L825 145 L786 267 L716 326 L811 432 L802 523 L568 541 L426 504 L421 438 L494 406 L481 302 L440 243 Z"><title>喷泉 · 悬停播放</title></path>
+<path class="spot" data-video="painting" tabindex="0" role="button" aria-label="播放画画动画" aria-pressed="false" d="M190 250 L225 246 L241 294 L318 287 L360 483 L323 533 L365 586 L332 630 L224 630 L195 599 L141 580 L166 475 L139 313 Z"><title>画 · 悬停播放</title></path>
+<path class="spot" data-video="grass" tabindex="0" role="button" aria-label="播放小草动画" aria-pressed="false" d="M16 420 L69 390 L150 432 L145 480 L24 480 Z M340 368 L383 337 L441 348 L482 364 L483 425 L348 425 Z M355 504 L400 472 L444 487 L518 499 L549 511 L540 561 L368 561 Z M744 551 L765 471 L794 495 L825 460 L835 500 L880 466 L868 517 L924 480 L937 550 Z M20 580 L64 620 L92 536 L124 620 L151 588 L167 635 L210 613 L213 669 L41 669 Z M350 663 L371 610 L389 635 L439 603 L427 643 L471 620 L454 667 Z M510 624 L556 647 L577 585 L600 624 L638 586 L644 627 L688 579 L697 623 L739 590 L754 635 L814 584 L823 623 L862 579 L860 633 L958 579 L932 646 L982 628 L965 674 L532 674 Z M1164 523 L1183 470 L1204 500 L1228 466 L1237 500 L1264 480 L1255 523 Z"><title>草 · 悬停播放</title></path>
+<path class="spot" data-video="flowers" tabindex="0" role="button" aria-label="播放花朵动画" aria-pressed="false" d="M987 500 L1031 483 L1028 460 L1064 455 L1087 445 L1105 460 L1101 484 L1130 491 L1135 521 L1111 537 L1110 567 L1163 548 L1141 602 L1095 628 L1094 673 L1059 673 L1055 648 L1028 648 L990 611 L985 569 L1026 583 L1013 553 L1005 533 Z M1150 566 L1170 544 L1205 553 L1225 538 L1248 545 L1241 569 L1251 589 L1232 610 L1261 599 L1255 633 L1220 661 L1216 681 L1180 681 L1182 661 L1153 648 L1145 610 L1174 616 L1174 604 L1157 600 Z"><title>花 · 悬停播放</title></path>
+</svg>
+</main>
+<p class="hint">移到喷泉、画、草、花上，看看会发生什么 · 触屏可点击</p>
+<div class="error" role="status" aria-live="polite"></div>
+<script>
+const spots=[...document.querySelectorAll('.spot')];
+const videos=[...document.querySelectorAll('video')];
+const hint=document.querySelector('.hint');
+const error=document.querySelector('.error');
+let current=null,revision=0;
+function stop(){revision++;videos.forEach(v=>{v.pause();v.classList.remove('active')});spots.forEach(s=>s.setAttribute('aria-pressed','false'));current=null;}
+async function start(spot){if(current===spot)return;stop();current=spot;const version=revision;const video=document.getElementById(spot.dataset.video);video.currentTime=0;video.muted=true;error.textContent='';try{await video.play();if(version!==revision)return;video.classList.add('active');spot.setAttribute('aria-pressed','true');hint.classList.add('hidden');}catch(e){if(version===revision){stop();error.textContent='视频未能播放，请点击区域重试，或检查 assets 中的视频文件。';}}}
+spots.forEach(spot=>{
+ spot.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')start(spot)});
+ spot.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch'&&current===spot)stop()});
+ spot.addEventListener('focus',()=>start(spot));
+ spot.addEventListener('blur',()=>{if(current===spot)stop()});
+ spot.addEventListener('click',e=>{if(e.pointerType==='touch'){current===spot?stop():start(spot)}else start(spot)});
+ spot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();start(spot)}});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+</script>
+</body>
+</html>
